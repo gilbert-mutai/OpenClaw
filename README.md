@@ -16,6 +16,9 @@ Set up OpenClaw on an Ubuntu VM to receive client support requests from WhatsApp
 - Post a summary in Mattermost with the client request details.
 - Ask on-call engineers to check WhatsApp and respond to the client quickly.
 - Route WhatsApp events to OpenClaw via its hook endpoint so OpenClaw owns summarization and escalation.
+- Use professional tone in WhatsApp acknowledgements and follow-ups.
+- Tag @here in Mattermost for visibility.
+- Follow up on all tickets: 30 minutes for urgent, 1 hour for normal.
 
 ## End-to-End Flow (MVP)
 1) Client sends a WhatsApp message.
@@ -75,6 +78,13 @@ Hello {{client_name}}, I am sorry for what you are facing at the moment. Please 
 Fallback when no name is available:
 Hello, I am sorry for what you are facing at the moment. Please note that we have received your request, and one of our engineers will get back to you shortly.
 
+## Planned Enhancements (Next Session)
+1) Dynamic WhatsApp replies with professional tone and short next steps.
+2) Structured Mattermost messages (title + fields + tags).
+3) Severity detection (urgent vs normal) to drive follow-up timing.
+4) Scheduled follow-ups via OpenClaw skills/cron (30 min urgent, 60 min normal).
+5) Always tag @here in Mattermost escalations.
+
 ## Mattermost Escalation Template
 Title: New WhatsApp Client Request
 Client: {{client_name}} ({{client_phone}})
@@ -116,7 +126,7 @@ Action: @here please check WhatsApp and respond to the client now.
 
 ## Inputs Needed Before Implementation
 1) OpenClaw hook token and hook endpoint URL.
-2) Mattermost channel ID for OpenClaw delivery.
+2) Mattermost bot token (existing bot is fine) and target channel ID.
 3) On-call routing: static @here tag or source of truth (PagerDuty/Opsgenie/schedule file).
 4) Name handling fallback preference: "Hello" vs "Hello there" when display name is missing.
 5) Final confirmation to use Baileys for MVP with known production risks.

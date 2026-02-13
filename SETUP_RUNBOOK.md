@@ -11,9 +11,10 @@ This runbook tracks the exact step-by-step setup on Ubuntu VM for OpenClaw (Bail
 - [x] Step 5: Initialize Node project + install dependencies
 - [x] Step 6: Create application files and environment config
 - [x] Step 7: Start app and pair WhatsApp (QR)
-- [ ] Step 8: Configure OpenClaw hooks and Mattermost channel (IN PROGRESS)
-- [ ] Step 9: Configure PM2 startup and persistence
-- [ ] Step 10: Validation tests and production readiness checks
+- [x] Step 8: Configure OpenClaw hooks and Mattermost channel
+- [x] Step 9: Configure PM2 startup and persistence
+- [x] Step 10: Validation tests and production readiness checks
+- [ ] Step 11: Dynamic responses + scheduled follow-ups (PLANNED)
 
 ---
 
@@ -151,6 +152,34 @@ ESCALATION_ENABLED=true
 - Dev target: separate development Mattermost channel
 - Client greeting name source: WhatsApp profile/contact display name
 - Fallback greeting: generic greeting when name is unavailable
+- WhatsApp tone: professional
+- Follow-up timing: urgent = 30 minutes, normal = 60 minutes
+- Follow-up applies to all tickets
+- Mattermost tagging: always @here
+
+---
+
+## Step 8 - Configure OpenClaw Hooks + Mattermost (IN PROGRESS)
+
+### Mattermost bot token
+Create or reuse a Mattermost bot account and obtain its **bot token**. The bot must be a member of the target channel.
+
+### Configure Mattermost plugin (stock)
+```bash
+openclaw plugins enable mattermost
+openclaw config set channels.mattermost.enabled true
+openclaw config set channels.mattermost.botToken "<BOT_TOKEN>"
+openclaw config set channels.mattermost.baseUrl "https://mattermost.angani.co"
+openclaw gateway restart
+```
+
+### Enable hooks
+```bash
+openclaw config set hooks.enabled true
+openclaw config set hooks.token "<HOOK_TOKEN>"
+openclaw config set hooks.path "/hooks"
+openclaw gateway restart
+```
 
 ---
 
@@ -159,3 +188,6 @@ ESCALATION_ENABLED=true
 - 2026-02-12: Runbook created and Steps 1-5 documented.
 - 2026-02-13: Step 6 completed (app files and env set on VM).
 - 2026-02-13: Step 7 completed (WhatsApp paired, auto-reply and Mattermost escalation verified).
+- 2026-02-13: Step 8 completed (OpenClaw hooks + Mattermost channel working; OpenClaw Bot posts to Mattermost).
+- 2026-02-13: Step 9 completed (PM2 startup enabled and app running as service).
+- 2026-02-13: Step 10 completed (health check, gateway status, and hook test validated).

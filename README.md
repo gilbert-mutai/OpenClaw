@@ -1,11 +1,12 @@
 # OpenClaw WhatsApp Support Agent - Implementation Plan
 
 ## Goal
-Set up OpenClaw on an Ubuntu VM to receive client support requests from WhatsApp, send an immediate acknowledgement to the client, and notify engineers in Mattermost with a concise summary plus an on-call action prompt.
+Set up OpenClaw on an Ubuntu VM to receive client support requests from WhatsApp via a Baileys listener, then use OpenClaw to summarize and route alerts to Mattermost with an on-call action prompt, while sending an immediate acknowledgement back to the client.
 
 ## Decisions Locked
 - WhatsApp integration for MVP: Baileys (using a WhatsApp Web session).
-- Mattermost environment for MVP: separate development Mattermost deployment.
+- OpenClaw will run on the same VM as Baileys.
+- Mattermost delivery: OpenClaw Mattermost channel plugin (not a direct webhook from Baileys).
 - Client naming in acknowledgement: use WhatsApp profile/contact display name when available, fallback to phone number.
 - Production direction: keep internal interfaces stable so we can later migrate from Baileys to Meta WhatsApp Cloud API or Twilio without large rewrites.
 
@@ -14,14 +15,16 @@ Set up OpenClaw on an Ubuntu VM to receive client support requests from WhatsApp
 - Send a fast acknowledgement to the client on WhatsApp with apology and reassurance.
 - Post a summary in Mattermost with the client request details.
 - Ask on-call engineers to check WhatsApp and respond to the client quickly.
+- Route WhatsApp events to OpenClaw via its hook endpoint so OpenClaw owns summarization and escalation.
 
 ## End-to-End Flow (MVP)
 1) Client sends a WhatsApp message.
-2) Baileys receives and normalizes the message into an OpenClaw event.
-3) OpenClaw extracts issue summary and customer identity.
-4) OpenClaw sends acknowledgement reply on WhatsApp.
+2) Baileys receives and normalizes the message.
+3) Baileys posts the normalized payload to OpenClaw via `/hooks/agent`.
+4) OpenClaw extracts issue summary and customer identity.
 5) OpenClaw posts escalation summary to Mattermost dev channel.
-6) Engineer replies directly to the client on WhatsApp.
+6) Baileys sends acknowledgement reply on WhatsApp.
+7) Engineer replies directly to the client on WhatsApp.
 
 ## Message Routing Contracts
 
@@ -77,7 +80,7 @@ Title: New WhatsApp Client Request
 Client: {{client_name}} ({{client_phone}})
 Issue Summary: {{issue_summary}}
 Original Message: "{{raw_text}}"
-Action: @oncall please check WhatsApp and respond to the client now.
+Action: @here please check WhatsApp and respond to the client now.
 
 ## Infrastructure Baseline
 - VM: Ubuntu 22.04 LTS or 24.04 LTS.
@@ -112,16 +115,18 @@ Action: @oncall please check WhatsApp and respond to the client now.
 - Plan migration from Baileys to official API for stronger production compliance.
 
 ## Inputs Needed Before Implementation
-1) Mattermost dev details: server URL, bot token, target channel name.
-2) On-call routing: static @oncall tag or source of truth (PagerDuty/Opsgenie/schedule file).
-3) Name handling fallback preference: "Hello" vs "Hello there" when display name is missing.
-4) Final confirmation to use Baileys for MVP with known production risks.
+1) OpenClaw hook token and hook endpoint URL.
+2) Mattermost channel ID for OpenClaw delivery.
+3) On-call routing: static @here tag or source of truth (PagerDuty/Opsgenie/schedule file).
+4) Name handling fallback preference: "Hello" vs "Hello there" when display name is missing.
+5) Final confirmation to use Baileys for MVP with known production risks.
 
 ## Planned Steps
 1) Install OpenClaw on Ubuntu VM and run onboarding.
 2) Set up Baileys session persistence and WhatsApp message listener.
 3) Build normalization layer for incoming client messages.
-4) Implement acknowledgement template rendering and send reply.
-5) Implement Mattermost notifier with escalation template.
-6) Add logging, retries, and basic failure handling.
-7) Validate end-to-end flow with a real or simulated WhatsApp message.
+4) Configure OpenClaw hooks and Mattermost channel plugin.
+5) Update Baileys app to post events to OpenClaw `/hooks/agent`.
+6) Implement acknowledgement template rendering and send reply.
+7) Add logging, retries, and basic failure handling.
+8) Validate end-to-end flow with a real or simulated WhatsApp message.

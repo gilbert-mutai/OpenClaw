@@ -9,9 +9,9 @@ This runbook tracks the exact step-by-step setup on Ubuntu VM for OpenClaw (Bail
 - [x] Step 3: Install Node.js 20 LTS + PM2
 - [x] Step 4: Clone repository to `/opt/openclaw/app`
 - [x] Step 5: Initialize Node project + install dependencies
-- [ ] Step 6: Create application files and environment config
-- [ ] Step 7: Start app and pair WhatsApp (QR)
-- [ ] Step 8: Configure Mattermost incoming post
+- [x] Step 6: Create application files and environment config
+- [x] Step 7: Start app and pair WhatsApp (QR)
+- [ ] Step 8: Configure OpenClaw hooks and Mattermost channel (IN PROGRESS)
 - [ ] Step 9: Configure PM2 startup and persistence
 - [ ] Step 10: Validation tests and production readiness checks
 
@@ -107,7 +107,7 @@ Dependencies include:
 
 ---
 
-## Step 6 - Create App Files (NEXT)
+## Step 6 - Create App Files
 
 We will create these files next:
 
@@ -130,10 +130,13 @@ NODE_ENV=development
 WHATSAPP_SESSION_DIR=.auth
 WHATSAPP_ACK_FALLBACK_NAME=there
 
-# Mattermost
-MATTERMOST_WEBHOOK_URL=
-MATTERMOST_CHANNEL=dev-support-escalations
-MATTERMOST_ONCALL_TAG=@oncall
+# OpenClaw hook
+OPENCLAW_HOOK_URL=http://127.0.0.1:18789/hooks/agent
+OPENCLAW_HOOK_TOKEN=
+
+# OpenClaw Mattermost channel
+OPENCLAW_MATTERMOST_CHANNEL_ID=
+MATTERMOST_ONCALL_TAG=@here
 
 # App behavior
 AUTO_REPLY_ENABLED=true
@@ -144,8 +147,8 @@ ESCALATION_ENABLED=true
 
 ## Notes and Decisions
 
-- MVP integration: Baileys
-- Dev target: separate development Mattermost
+- MVP integration: Baileys -> OpenClaw hook -> Mattermost channel plugin
+- Dev target: separate development Mattermost channel
 - Client greeting name source: WhatsApp profile/contact display name
 - Fallback greeting: generic greeting when name is unavailable
 
@@ -154,3 +157,5 @@ ESCALATION_ENABLED=true
 ## Change Log
 
 - 2026-02-12: Runbook created and Steps 1-5 documented.
+- 2026-02-13: Step 6 completed (app files and env set on VM).
+- 2026-02-13: Step 7 completed (WhatsApp paired, auto-reply and Mattermost escalation verified).

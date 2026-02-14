@@ -1,0 +1,210 @@
+ROLE
+
+You are a senior backend architect and DevOps engineer.
+
+I have already built:
+
+WhatsApp webhook intake
+
+LLM summarization + classification
+
+Mattermost notification
+
+Now I want to extend the system to integrate with ERPNext to intelligently create and manage support tickets.
+
+Help me design and implement a robust, production-ready ticketing logic layer.
+
+OBJECTIVE
+
+Build an intelligent ticketing system that:
+
+Creates ERPNext ticket when a client raises a new issue.
+
+Prevents duplicate tickets if client continues the same issue.
+
+Appends new messages to the existing ticket if issue is ongoing.
+
+Detects when a client raises a new issue and opens a new ticket.
+
+Supports session timeout logic (e.g., 24-hour inactivity window).
+
+CURRENT INPUT FROM LLM
+
+The LLM already returns structured JSON like:
+
+{
+"summary": "User unable to SSH to server 10.221.35.60",
+"issue_type": "Network",
+"priority": "High",
+"confidence": 0.91
+}
+
+You must design ticket logic using this structured output.
+
+DESIGN REQUIREMENTS
+
+1️⃣ STATE MANAGEMENT
+
+Design a database schema to track:
+
+phone_number
+
+open_ticket_id
+
+last_issue_summary
+
+last_activity_timestamp
+
+session_status (active / closed)
+
+Explain how this table will:
+
+Prevent duplicate tickets
+
+Allow multiple tickets over time
+
+Handle conversation continuity
+
+2️⃣ ISSUE DEDUPLICATION LOGIC (MVP – Practical)
+
+When a new message arrives:
+
+If:
+
+No open ticket → create ticket
+
+Open ticket exists → determine SAME or NEW issue
+
+Design logic using this approach:
+
+Send to LLM:
+
+Previous issue summary
+
+New client message
+
+Ask:
+
+"Is this the SAME issue or a NEW issue? Reply strictly with SAME or NEW."
+
+Then:
+
+SAME → append comment to ERPNext ticket
+
+NEW → create new ERPNext ticket and update mapping
+
+Provide:
+
+Prompt template
+
+Pseudocode
+
+Failure handling logic
+
+3️⃣ ERPNext INTEGRATION
+
+Design full integration using ERPNext REST API.
+
+Include:
+
+Authentication method (API key / token)
+
+Ticket creation endpoint
+
+Comment append endpoint
+
+Error handling
+
+Idempotency safeguards
+
+Retry strategy
+
+Ticket creation should include:
+
+Subject (LLM summary)
+
+Description (full conversation context)
+
+Priority (mapped correctly to ERPNext priority levels)
+
+Client identifier (phone number as custom field if needed)
+
+Explain how to structure API calls cleanly.
+
+4️⃣ TIMEOUT LOGIC
+
+Design logic such that:
+
+If last_activity > 24 hours → close session
+
+Next message triggers new ticket flow
+
+Explain how to avoid race conditions.
+
+5️⃣ EDGE CASE HANDLING
+
+Handle:
+
+LLM uncertainty (low confidence score)
+
+ERPNext API failure
+
+Duplicate webhook calls
+
+Multiple rapid messages
+
+Ticket created but DB update fails
+
+Explain safe transactional flow.
+
+6️⃣ ARCHITECTURAL IMPROVEMENTS (IF NEEDED)
+
+Since WhatsApp + AI + Mattermost is already working:
+
+Review whether I should:
+
+Introduce a dedicated TicketService layer
+
+Use queue system (e.g., Redis / Celery)
+
+Use transactional DB locking
+
+Add message batching
+
+Give recommendations appropriate for a small-to-medium production workload.
+
+7️⃣ FUTURE-PROOFING FOR LOCAL MODEL
+
+In future we will host LLM locally on GPU.
+
+Ensure ticket logic:
+
+Does not depend on specific API vendor
+
+Uses abstracted LLM decision interface
+
+Can later support embedding similarity instead of simple SAME/NEW classification
+
+Explain what must be designed now to avoid major refactor later.
+
+DELIVERABLES REQUIRED
+
+Suggested database schema
+
+Clean service-layer architecture
+
+End-to-end pseudocode flow
+
+ERPNext API integration outline
+
+SAME/NEW prompt template
+
+Timeout logic design
+
+Risk analysis
+
+MVP vs Phase 2 improvements
+
+Think like you are designing a real production ITSM automation system, not a demo script.
+
+Do not give shallow answers.

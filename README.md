@@ -6,7 +6,7 @@ Set up OpenClaw on an Ubuntu VM to receive client support requests from WhatsApp
 ## Decisions Locked
 - WhatsApp integration for MVP: Baileys (using a WhatsApp Web session).
 - OpenClaw will run on the same VM as Baileys.
-- Mattermost delivery: OpenClaw Mattermost channel plugin (not a direct webhook from Baileys).
+- Mattermost delivery: OpenClaw Mattermost channel plugin by default, with an optional direct webhook fallback driven by `.env`.
 - Client naming in acknowledgement: use WhatsApp profile/contact display name when available, fallback to phone number.
 - Production direction: keep internal interfaces stable so we can later migrate from Baileys to Meta WhatsApp Cloud API or Twilio without large rewrites.
 
@@ -91,6 +91,12 @@ Client: {{client_name}} ({{client_phone}})
 Issue Summary: {{issue_summary}}
 Original Message: "{{raw_text}}"
 Action: @here please check WhatsApp and respond to the client now.
+
+## Direct Mattermost Webhook Mode
+- Set `MATTERMOST_WEBHOOK_URL` (and optional `MATTERMOST_CHANNEL`, `MATTERMOST_USERNAME`, `MATTERMOST_ICON_URL`) in `.env`.
+- Reload the app so `openclaw-wa` picks up the new values (see `setting-env.md`).
+- Leave `OPENCLAW_ESCALATION_ENABLED=true` to keep OpenClaw gateway escalations, or set it to `false` to stop OpenClaw from posting while still scheduling follow-ups via `scheduleFollowUpWithOpenClaw`.
+- When the flag is `false`, Mattermost notifications are sent directly from this service and only the `.env` values determine the destination channel.
 
 ## Infrastructure Baseline
 - VM: Ubuntu 22.04 LTS or 24.04 LTS.

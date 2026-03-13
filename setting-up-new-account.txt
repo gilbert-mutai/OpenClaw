@@ -1,0 +1,12 @@
+cd /opt/openclaw/app
+pm2 stop openclaw-wa
+cp -r .auth .auth-test-backup-$(date +%Y%m%d-%H%M%S)
+rm -rf .auth
+node src/index.js
+
+
+.............................
+
+pm2 start openclaw-wa
+pm2 logs openclaw-wa --lines 200
+pm2 save

@@ -1,0 +1,1 @@
+curl -i -sS -X POST -H "Authorization: token $ERPNEXT_API_KEY:$ERPNEXT_API_SECRET" -H "Content-Type: application/json" "$ERPNEXT_BASE_URL/api/resource/HD%20Ticket" -d '{"subject":"OpenClaw HD Ticket Test","description":"Final test","priority":"Medium"}'

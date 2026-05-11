@@ -4,8 +4,8 @@ set -e
 APP_DIR="/opt/openclaw/app"
 REPO_URL="https://github.com/gilbert-mutai/Whatsapp-ERPNext-Mattermost-Integration-with-OpenClaw.git"
 
-echo "==> Installing Node.js 20 LTS"
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+echo "==> Installing Node.js 22 LTS"
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 echo "==> Installing pm2 and openclaw globally"

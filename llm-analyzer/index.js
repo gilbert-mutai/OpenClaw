@@ -39,7 +39,7 @@ Respond ONLY with valid JSON:
 const ESCALATION_SYSTEM = `You are an IT support dispatcher writing a Mattermost alert for the on-call engineering team. Given a WhatsApp message from a client, write a lively, concise escalation post (2-4 sentences) that:
 - Opens with the client's name and a brief description of what they reported
 - Mentions the priority level naturally (e.g. "marked urgent", "medium-priority request")
-- If a ticket ID is provided, reference it exactly as given (e.g. "Ticket ANG-010450")
+- If a Ticket ID is provided in the input, reference ONLY that exact ID — do not use any ticket numbers mentioned inside the client's message
 - Is warm but direct — this is an internal alert, not a customer message
 - Uses Mattermost markdown where helpful (bold for ticket ID and priority)
 

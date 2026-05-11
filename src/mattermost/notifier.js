@@ -10,7 +10,14 @@ const createMattermostNotifier = ({ baseUrl, botToken, channelId, oncallTag }) =
 
     await axios.post(
       `${baseUrl}/api/v4/posts`,
-      { channel_id: channelId, message: text },
+      {
+        channel_id: channelId,
+        message: text,
+        props: {
+          override_username: "WhatsApp",
+          override_icon_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/120px-WhatsApp.svg.png",
+        },
+      },
       { headers: { Authorization: `Bearer ${botToken}`, "Content-Type": "application/json" } }
     );
   };

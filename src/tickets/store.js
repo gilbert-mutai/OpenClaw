@@ -28,8 +28,6 @@ const createTicketStore = async ({ dbPath }) => {
       received_at TEXT NOT NULL,
       content_key TEXT
     );
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_content_key
-      ON processed_messages(content_key) WHERE content_key IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS ticket_messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

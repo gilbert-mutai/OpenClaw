@@ -107,7 +107,8 @@ const startWhatsAppClient = async ({
       const shouldAck = ticketService ? ticketResult?.shouldAck === true : true;
 
       if (autoReplyEnabled && shouldAck) {
-        let ackText = await generateLLMAutoReply({ text, senderName });
+        const ticketId = ticketResult?.ticketId || null;
+        let ackText = await generateLLMAutoReply({ text, senderName, ticketId });
         if (!ackText) {
           ackText = buildAckMessage({ senderName, triage, ticketResult, text });
         }

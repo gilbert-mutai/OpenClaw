@@ -28,8 +28,9 @@ Rules:
 
 const AUTO_REPLY_SYSTEM = `You are a professional IT support agent responding to clients via WhatsApp. Write a brief, empathetic acknowledgement that:
 - Addresses the client by name if provided
-- Confirms their request was received
-- Sets expectation that engineers will follow up
+- Briefly references the specific issue they reported (e.g. "your backup check request", "your server access issue")
+- Confirms a ticket has been raised and engineers will follow up
+- If a ticket ID is provided, end with "Ticket: <ID>."
 - Is 1-3 sentences, warm but professional
 
 Respond ONLY with valid JSON:
@@ -72,12 +73,13 @@ app.post("/analyze", async (req, res) => {
     }
 
     if (task === "auto_reply") {
-      const userPrompt = senderName
-        ? `Client name: ${senderName}\nClient message:\n${text}`
-        : `Client message:\n${text}`;
+      const parts = [];
+      if (senderName) parts.push(`Client name: ${senderName}`);
+      if (req.body.ticketId) parts.push(`Ticket ID: ${req.body.ticketId}`);
+      parts.push(`Client message:\n${text}`);
       const data = await callModel({
         systemText: AUTO_REPLY_SYSTEM,
-        userContent: userPrompt,
+        userContent: parts.join("\n"),
       });
       return res.json(data);
     }

@@ -112,7 +112,7 @@ const analyzeInboundMessage = async ({ text, senderName }) => {
   return { summary, subject, priority };
 };
 
-const generateLLMAutoReply = async ({ text, senderName }) => {
+const generateLLMAutoReply = async ({ text, senderName, ticketId }) => {
   const url = process.env.LLM_ANALYZER_URL;
   if (!url) return null;
   const timeout = Number(process.env.LLM_ANALYZER_TIMEOUT_MS || 3000);
@@ -120,6 +120,7 @@ const generateLLMAutoReply = async ({ text, senderName }) => {
     text,
     task: "auto_reply",
     senderName,
+    ticketId: ticketId || null,
     output_schema: {
       reply: "string",
     },

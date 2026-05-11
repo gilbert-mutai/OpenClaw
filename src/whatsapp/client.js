@@ -118,7 +118,7 @@ const startWhatsAppClient = async ({
         await socket.sendMessage(remoteJid, { text: ackText });
       }
 
-      if (escalationEnabled && notifier) {
+      if (escalationEnabled && notifier && ticketResult?.duplicate !== true) {
         const ticketId = ticketResult?.ticketId || null;
         let escalationText = await generateEscalationNarrative({
           text,

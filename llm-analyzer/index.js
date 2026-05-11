@@ -13,7 +13,7 @@ const MODEL = process.env.LLM_MODEL || "gpt-4o-mini";
 const PORT = process.env.LLM_PORT || 4001;
 
 const TRIAGE_SYSTEM = `You are an expert IT support ticket classifier. Given a WhatsApp message from a client, extract:
-- subject: A concise ticket title (8-120 characters)
+- subject: A concise ticket title (8-120 characters). If the client's name is provided, use it in the subject instead of the word "client" (e.g. "Server access issue reported by Gilbert" not "Server access issue reported by client")
 - summary: A one-sentence description of the issue
 - priority: High (outages, cannot access systems, all users affected), Medium (degraded service, single user), or Low (questions, general requests)
 - confidence: Your confidence in this classification as a decimal 0.0-1.0
@@ -64,10 +64,10 @@ app.post("/analyze", async (req, res) => {
 
   try {
     if (task === "support_ticket_triage") {
-      const data = await callModel({
-        systemText: TRIAGE_SYSTEM,
-        userContent: `Client message:\n${text}`,
-      });
+      const userContent = senderName
+        ? `Client name: ${senderName}\nClient message:\n${text}`
+        : `Client message:\n${text}`;
+      const data = await callModel({ systemText: TRIAGE_SYSTEM, userContent });
       return res.json(data);
     }
 

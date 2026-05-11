@@ -60,13 +60,14 @@ const validateLLMOutput = (data) => {
   return { ok: true, value: { subject, summary: summary || subject, priority, confidence } };
 };
 
-const fromLLM = async (text) => {
+const fromLLM = async (text, senderName) => {
   const url = process.env.LLM_ANALYZER_URL;
   if (!url) return null;
   const timeout = Number(process.env.LLM_ANALYZER_TIMEOUT_MS || 3000);
   const payload = {
     text,
     task: "support_ticket_triage",
+    senderName: senderName || null,
     output_schema: {
       subject: "string(8-120)",
       summary: "string",
@@ -93,9 +94,9 @@ const buildDynamicAck = ({ senderName, priority, summary, ticketId }) => {
   return `Hello ${name}, thank you for contacting us. We are sorry for the inconvenience. Your request has been received and assigned to our support engineers. We will get back to you shortly.${ref}`;
 };
 
-const analyzeInboundMessage = async ({ text }) => {
+const analyzeInboundMessage = async ({ text, senderName }) => {
   try {
-    const llm = await fromLLM(text);
+    const llm = await fromLLM(text, senderName);
     if (llm) {
       console.log("Triage source=llm confidence=", llm.confidence);
       return { summary: llm.summary, subject: llm.subject, priority: llm.priority };

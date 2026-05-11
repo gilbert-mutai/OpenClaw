@@ -84,7 +84,7 @@ const startWhatsAppClient = async ({
       processingIds.add(messageId);
       setTimeout(() => processingIds.delete(messageId), 60000);
 
-      const triage = await analyzeInboundMessage({ text });
+      const triage = await analyzeInboundMessage({ text, senderName });
 
       let ticketResult = null;
       if (ticketService) {

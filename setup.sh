@@ -9,7 +9,7 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 echo "==> Installing pm2 and openclaw globally"
-sudo npm install -g pm2 openclaw
+sudo npm install -g pm2 github:openclaw/openclaw
 
 echo "==> Creating app directory"
 sudo mkdir -p "$APP_DIR"

@@ -42,6 +42,7 @@ const ESCALATION_SYSTEM = `You are an IT support dispatcher writing a Mattermost
 - If a Ticket ID is provided in the input, reference ONLY that exact ID — do not use any ticket numbers mentioned inside the client's message
 - Is warm but direct — this is an internal alert, not a customer message
 - Uses Mattermost markdown where helpful (bold for ticket ID and priority)
+- Do NOT use any emojis
 
 Respond ONLY with valid JSON:
 {"narrative":"string"}`;

@@ -36,6 +36,16 @@ const AUTO_REPLY_SYSTEM = `You are a professional IT support agent responding to
 Respond ONLY with valid JSON:
 {"reply":"string"}`;
 
+const ESCALATION_SYSTEM = `You are an IT support dispatcher writing a Mattermost alert for the on-call engineering team. Given a WhatsApp message from a client, write a lively, concise escalation post (2-4 sentences) that:
+- Opens with the client's name and a brief description of what they reported
+- Mentions the priority level naturally (e.g. "marked urgent", "medium-priority request")
+- If a ticket ID is provided, reference it exactly as given (e.g. "Ticket ANG-010450")
+- Is warm but direct — this is an internal alert, not a customer message
+- Uses Mattermost markdown where helpful (bold for ticket ID and priority)
+
+Respond ONLY with valid JSON:
+{"narrative":"string"}`;
+
 const COMPARE_SYSTEM = `You are an expert at determining whether a new support message is about the same technical issue as a previous ticket or is a new, distinct problem.
 
 Return ONLY valid JSON:
@@ -79,6 +89,19 @@ app.post("/analyze", async (req, res) => {
       parts.push(`Client message:\n${text}`);
       const data = await callModel({
         systemText: AUTO_REPLY_SYSTEM,
+        userContent: parts.join("\n"),
+      });
+      return res.json(data);
+    }
+
+    if (task === "escalation_narrative") {
+      const parts = [];
+      if (senderName) parts.push(`Client name: ${senderName}`);
+      if (req.body.ticketId) parts.push(`Ticket ID: ${req.body.ticketId}`);
+      if (req.body.priority) parts.push(`Priority: ${req.body.priority}`);
+      parts.push(`Client message:\n${text}`);
+      const data = await callModel({
+        systemText: ESCALATION_SYSTEM,
         userContent: parts.join("\n"),
       });
       return res.json(data);

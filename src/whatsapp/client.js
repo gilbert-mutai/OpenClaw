@@ -6,7 +6,7 @@ const {
 } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 const qrcode = require("qrcode-terminal");
-const { analyzeInboundMessage, generateLLMAutoReply } = require("../triage/analyzer");
+const { analyzeInboundMessage, generateLLMAutoReply, generateEscalationNarrative } = require("../triage/analyzer");
 
 const getMessageText = (message) => {
   if (!message) return "";
@@ -116,13 +116,16 @@ const startWhatsAppClient = async ({
       }
 
       if (escalationEnabled && notifier) {
-        const escalationText = buildEscalationMessage({
-          senderName,
+        const ticketId = ticketResult?.ticketId || null;
+        let escalationText = await generateEscalationNarrative({
           text,
-          remoteJid,
-          ticketResult,
-          triage,
+          senderName,
+          ticketId,
+          priority: triage?.priority,
         });
+        if (!escalationText) {
+          escalationText = buildEscalationMessage({ senderName, text, remoteJid, ticketResult, triage });
+        }
         await notifier.send(escalationText);
       }
     }

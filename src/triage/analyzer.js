@@ -135,4 +135,25 @@ const generateLLMAutoReply = async ({ text, senderName, ticketId }) => {
   }
 };
 
-module.exports = { analyzeInboundMessage, buildDynamicAck, generateLLMAutoReply };
+const generateEscalationNarrative = async ({ text, senderName, ticketId, priority }) => {
+  const url = process.env.LLM_ANALYZER_URL;
+  if (!url) return null;
+  const timeout = Number(process.env.LLM_ANALYZER_TIMEOUT_MS || 3000);
+  const payload = {
+    text,
+    task: "escalation_narrative",
+    senderName: senderName || null,
+    ticketId: ticketId || null,
+    priority: priority || "Medium",
+  };
+  try {
+    const res = await axios.post(url, payload, { timeout });
+    const narrative = String(res?.data?.narrative || "").trim();
+    return narrative || null;
+  } catch (error) {
+    console.warn("LLM escalation narrative failed:", error.message);
+    return null;
+  }
+};
+
+module.exports = { analyzeInboundMessage, buildDynamicAck, generateLLMAutoReply, generateEscalationNarrative };

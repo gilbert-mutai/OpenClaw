@@ -21,9 +21,9 @@ app.listen(port, () => {
 });
 
 const notifier = createMattermostNotifier({
-  hookUrl: process.env.OPENCLAW_HOOK_URL,
-  hookToken: process.env.OPENCLAW_HOOK_TOKEN,
-  channelId: process.env.OPENCLAW_MATTERMOST_CHANNEL_ID,
+  baseUrl: process.env.MATTERMOST_BASE_URL,
+  botToken: process.env.MATTERMOST_BOT_TOKEN,
+  channelId: process.env.MATTERMOST_CHANNEL_ID,
   oncallTag: process.env.MATTERMOST_ONCALL_TAG,
 });
 

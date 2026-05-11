@@ -1,28 +1,18 @@
 const axios = require("axios");
 
-const createMattermostNotifier = ({ hookUrl, hookToken, channelId, oncallTag }) => {
-  if (!hookUrl || !hookToken || !channelId) {
-    console.warn("OpenClaw hook config missing. Escalations disabled.");
+const createMattermostNotifier = ({ baseUrl, botToken, channelId, oncallTag }) => {
+  if (!baseUrl || !botToken || !channelId) {
+    console.warn("Mattermost direct API config missing (MATTERMOST_BASE_URL, MATTERMOST_BOT_TOKEN, MATTERMOST_CHANNEL_ID). Escalations disabled.");
   }
 
   const send = async (text) => {
-    if (!hookUrl || !hookToken || !channelId) return;
+    if (!baseUrl || !botToken || !channelId) return;
 
-    const payload = {
-      message: text,
-      name: "WhatsApp",
-      wakeMode: "now",
-      deliver: true,
-      channel: "mattermost",
-      to: `channel:${channelId}`,
-    };
-
-    await axios.post(hookUrl, payload, {
-      headers: {
-        "Content-Type": "application/json",
-        "x-openclaw-token": hookToken,
-      },
-    });
+    await axios.post(
+      `${baseUrl}/api/v4/posts`,
+      { channel_id: channelId, message: text },
+      { headers: { Authorization: `Bearer ${botToken}`, "Content-Type": "application/json" } }
+    );
   };
 
   return { send, oncallTag };

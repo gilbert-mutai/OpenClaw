@@ -148,7 +148,10 @@ const generateEscalationNarrative = async ({ text, senderName, ticketId, priorit
   };
   try {
     const res = await axios.post(url, payload, { timeout });
-    const narrative = String(res?.data?.narrative || "").trim();
+    let narrative = String(res?.data?.narrative || "").trim();
+    if (narrative && ticketId) {
+      narrative = narrative.replace(/ANG-\d{6,}/gi, ticketId);
+    }
     return narrative || null;
   } catch (error) {
     console.warn("LLM escalation narrative failed:", error.message);

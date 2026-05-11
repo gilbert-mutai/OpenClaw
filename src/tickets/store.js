@@ -43,6 +43,8 @@ const createTicketStore = async ({ dbPath }) => {
   } catch (_) {}
   try {
     await db.exec(`ALTER TABLE processed_messages ADD COLUMN content_key TEXT`);
+  } catch (_) {}
+  try {
     await db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_content_key ON processed_messages(content_key) WHERE content_key IS NOT NULL`);
   } catch (_) {}
 

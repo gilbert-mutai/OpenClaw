@@ -79,6 +79,9 @@ const startWhatsAppClient = async ({
       const remoteJid = message.key.remoteJid;
       const phone = extractPhone(remoteJid);
       const messageId = message.key.id || `${remoteJid}-${Date.now()}`;
+      const receivedAt = message.messageTimestamp
+        ? new Date(Number(message.messageTimestamp) * 1000).toISOString()
+        : new Date().toISOString();
 
       if (processingIds.has(messageId)) continue;
       processingIds.add(messageId);
@@ -94,7 +97,7 @@ const startWhatsAppClient = async ({
             phone,
             senderName,
             text,
-            receivedAt: new Date().toISOString(),
+            receivedAt,
             llmSummary: triage.summary,
             llmSubject: triage.subject || triage.ticketSubject || triage.title || null,
             llmPriority: triage.priority,

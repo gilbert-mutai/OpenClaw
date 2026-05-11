@@ -56,6 +56,16 @@ const createTicketStore = async ({ dbPath }) => {
     );
   };
 
+  // Atomically claims a message for processing. Returns true if this caller
+  // is the first to claim it, false if already claimed by a concurrent call.
+  const tryClaimMessage = async ({ messageId, phone, receivedAt }) => {
+    const result = await db.run(
+      `INSERT OR IGNORE INTO processed_messages (message_id, phone, received_at) VALUES (?, ?, ?)`,
+      [messageId, phone, receivedAt]
+    );
+    return result.changes === 1;
+  };
+
   const getSession = async (phone) => {
     return db.get(`SELECT * FROM ticket_sessions WHERE phone = ?`, [phone]);
   };
@@ -105,6 +115,7 @@ const createTicketStore = async ({ dbPath }) => {
   return {
     hasProcessedMessage,
     markProcessedMessage,
+    tryClaimMessage,
     getSession,
     upsertSession,
     appendClientMessage,

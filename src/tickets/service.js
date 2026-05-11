@@ -96,9 +96,8 @@ const createTicketService = ({ store, erpnext, timeoutHours = 24 }) => {
     if (!erpnext?.isEnabled) return { skipped: true, reason: "erpnext_disabled" };
     if (!messageId || !phone || !text) return { skipped: true, reason: "invalid_payload" };
 
-    if (await store.hasProcessedMessage(messageId)) {
-      return { duplicate: true };
-    }
+    const claimed = await store.tryClaimMessage({ messageId, phone, receivedAt: receivedAt || new Date().toISOString() });
+    if (!claimed) return { duplicate: true };
 
     const nowIso = receivedAt || new Date().toISOString();
     const session = await store.getSession(phone);
@@ -195,7 +194,6 @@ const createTicketService = ({ store, erpnext, timeoutHours = 24 }) => {
       }
     }
 
-    await store.markProcessedMessage({ messageId, phone, receivedAt: nowIso });
     await store.appendClientMessage({ phone, text, receivedAt: nowIso });
 
     await store.upsertSession({

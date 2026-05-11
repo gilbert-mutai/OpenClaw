@@ -63,6 +63,8 @@ const startWhatsAppClient = async ({
     }
   });
 
+  const processingIds = new Set();
+
   socket.ev.on("messages.upsert", async (payload) => {
     if (payload.type !== "notify") return;
 
@@ -77,6 +79,10 @@ const startWhatsAppClient = async ({
       const remoteJid = message.key.remoteJid;
       const phone = extractPhone(remoteJid);
       const messageId = message.key.id || `${remoteJid}-${Date.now()}`;
+
+      if (processingIds.has(messageId)) continue;
+      processingIds.add(messageId);
+      setTimeout(() => processingIds.delete(messageId), 60000);
 
       const triage = await analyzeInboundMessage({ text });
 

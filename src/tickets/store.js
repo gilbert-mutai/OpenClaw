@@ -25,8 +25,11 @@ const createTicketStore = async ({ dbPath }) => {
     CREATE TABLE IF NOT EXISTS processed_messages (
       message_id TEXT PRIMARY KEY,
       phone TEXT NOT NULL,
-      received_at TEXT NOT NULL
+      received_at TEXT NOT NULL,
+      content_key TEXT
     );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_content_key
+      ON processed_messages(content_key) WHERE content_key IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS ticket_messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,6 +42,10 @@ const createTicketStore = async ({ dbPath }) => {
   // Backward-compatible migrations
   try {
     await db.exec(`ALTER TABLE ticket_sessions ADD COLUMN last_ticket_created_at TEXT`);
+  } catch (_) {}
+  try {
+    await db.exec(`ALTER TABLE processed_messages ADD COLUMN content_key TEXT`);
+    await db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_content_key ON processed_messages(content_key) WHERE content_key IS NOT NULL`);
   } catch (_) {}
 
   const hasProcessedMessage = async (messageId) => {
@@ -57,11 +64,14 @@ const createTicketStore = async ({ dbPath }) => {
   };
 
   // Atomically claims a message for processing. Returns true if this caller
-  // is the first to claim it, false if already claimed by a concurrent call.
-  const tryClaimMessage = async ({ messageId, phone, receivedAt }) => {
+  // is the first to claim it. Deduplicates by both messageId AND content
+  // (phone + text + minute) to catch Baileys replaying with different IDs.
+  const tryClaimMessage = async ({ messageId, phone, receivedAt, text }) => {
+    const minute = (receivedAt || new Date().toISOString()).slice(0, 16);
+    const contentKey = `${phone}|${String(text || "").trim().slice(0, 100)}|${minute}`;
     const result = await db.run(
-      `INSERT OR IGNORE INTO processed_messages (message_id, phone, received_at) VALUES (?, ?, ?)`,
-      [messageId, phone, receivedAt]
+      `INSERT OR IGNORE INTO processed_messages (message_id, phone, received_at, content_key) VALUES (?, ?, ?, ?)`,
+      [messageId, phone, receivedAt, contentKey]
     );
     return result.changes === 1;
   };

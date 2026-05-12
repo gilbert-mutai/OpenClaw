@@ -87,6 +87,18 @@ const startWhatsAppClient = async ({
       processingIds.add(messageId);
       setTimeout(() => processingIds.delete(messageId), 60000);
 
+      const companyNames = (process.env.COMPANY_WHATSAPP_NAMES || "")
+        .split(",").map((n) => n.trim().toLowerCase()).filter(Boolean);
+      const isCompanyReply = companyNames.length > 0 &&
+        companyNames.some((n) => (senderName || "").toLowerCase().includes(n));
+
+      if (isCompanyReply) {
+        if (escalationEnabled && notifier) {
+          await notifier.send(`Reply by ${senderName}: "${text}"`);
+        }
+        continue;
+      }
+
       const triage = await analyzeInboundMessage({ text, senderName });
 
       let ticketResult = null;

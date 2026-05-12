@@ -94,7 +94,8 @@ const startWhatsAppClient = async ({
 
       if (isCompanyReply) {
         if (escalationEnabled && notifier) {
-          await notifier.send(`Reply by ${senderName}: "${text}"`);
+          const label = remoteJid.endsWith("@g.us") ? "Message from" : "Reply by";
+          await notifier.send(`${label} ${senderName}: "${text}"`);
         }
         continue;
       }

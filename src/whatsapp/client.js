@@ -77,7 +77,8 @@ const startWhatsAppClient = async ({
 
       const senderName = message.pushName || ackFallbackName;
       const remoteJid = message.key.remoteJid;
-      const phone = extractPhone(remoteJid);
+      const senderJid = message.key.participant || remoteJid;
+      const phone = extractPhone(senderJid);
       const messageId = message.key.id || `${remoteJid}-${Date.now()}`;
       const receivedAt = message.messageTimestamp
         ? new Date(Number(message.messageTimestamp) * 1000).toISOString()

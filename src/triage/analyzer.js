@@ -152,6 +152,8 @@ const generateEscalationNarrative = async ({ text, senderName, ticketId, priorit
     if (narrative && ticketId) {
       narrative = narrative.replace(/ANG-\d{6,}/gi, ticketId);
     }
+    // Strip emojis regardless of what the LLM outputs
+    narrative = narrative.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2B00}-\u{2BFF}]/gu, "").trim();
     return narrative || null;
   } catch (error) {
     console.warn("LLM escalation narrative failed:", error.message);

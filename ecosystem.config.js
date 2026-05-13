@@ -22,5 +22,17 @@ module.exports = {
         NODE_ENV: "production",
       },
     },
+    {
+      name: "openclaw-wa-2",
+      script: "src/index.js",
+      cwd: "/opt/openclaw/app",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      env: {
+        NODE_ENV: "production",
+        ENV_FILE: "/opt/openclaw/app/.env.branch2",
+      },
+    },
   ],
 };

@@ -7,7 +7,7 @@ const { createERPNextClient } = require("./erpnext/client");
 const { createTicketStore } = require("./tickets/store");
 const { createTicketService } = require("./tickets/service");
 
-dotenv.config({ override: true });
+dotenv.config({ path: process.env.ENV_FILE || ".env", override: true });
 
 const port = Number(process.env.PORT || 3000);
 const app = express();

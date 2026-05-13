@@ -23,7 +23,7 @@ module.exports = {
       },
     },
     {
-      name: "openclaw-wa-2",
+      name: "openclaw-wa-marque",
       script: "src/index.js",
       cwd: "/opt/openclaw/app",
       instances: 1,
@@ -31,7 +31,7 @@ module.exports = {
       watch: false,
       env: {
         NODE_ENV: "production",
-        ENV_FILE: "/opt/openclaw/app/.env.branch2",
+        ENV_FILE: "/opt/openclaw/app/.env.marque",
       },
     },
   ],

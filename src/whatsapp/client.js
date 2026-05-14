@@ -17,7 +17,27 @@ const getMessageText = (message) => {
   return "";
 };
 
-const extractPhone = (jid = "") => jid.split("@")[0] || jid;
+const extractPhone = (jid = "") => {
+  if (!jid || jid === "status@broadcast" || jid.endsWith("@g.us")) return null;
+  return jid.split("@")[0].replace(/\D/g, "") || null;
+};
+
+const selectBestSenderJid = (message) => {
+  const candidates = [
+    message?.key?.participantAlt,
+    message?.key?.remoteJidAlt,
+    message?.participant,
+    message?.key?.participant,
+    message?.key?.remoteJid,
+  ].filter(Boolean);
+
+  return (
+    candidates.find((jid) => jid.endsWith("@s.whatsapp.net")) ||
+    candidates.find((jid) => jid.endsWith("@hosted")) ||
+    candidates[0] ||
+    null
+  );
+};
 
 const startWhatsAppClient = async ({
   sessionDir,
@@ -75,10 +95,10 @@ const startWhatsAppClient = async ({
       const text = getMessageText(message.message).trim();
       if (!text) continue;
 
-      const senderName = message.pushName || ackFallbackName;
+      const senderName = message.pushName || message.verifiedBizName || ackFallbackName;
       const remoteJid = message.key.remoteJid;
-      const senderJid = message.key.participant || remoteJid;
-      const phone = extractPhone(senderJid);
+      const senderJid = selectBestSenderJid(message);
+      const phone = extractPhone(senderJid) || extractPhone(remoteJid);
       const messageId = message.key.id || `${remoteJid}-${Date.now()}`;
       const receivedAt = message.messageTimestamp
         ? new Date(Number(message.messageTimestamp) * 1000).toISOString()

@@ -47,44 +47,22 @@ const parseConfidence = (value) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const validateLLMOutput = (data) => {
-  if (!data || typeof data !== "object") return { ok: false, reason: "not_object" };
-  const subject = String(data.subject || "").trim();
-  const summary = String(data.summary || "").trim();
-  const priority = cleanPriority(data.priority);
-  const confidence = parseConfidence(data.confidence);
-  if (!subject) return { ok: false, reason: "missing_subject" };
-  if (subject.length < 8 || subject.length > 120) return { ok: false, reason: "subject_length" };
-  if (confidence < Number(process.env.LLM_MIN_CONFIDENCE || 0.65))
-    return { ok: false, reason: "low_confidence" };
-  return { ok: true, value: { subject, summary: summary || subject, priority, confidence } };
-};
+const stripEmojis = (text) =>
+  String(text || "").replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2B00}-\u{2BFF}]/gu, "").trim();
 
-const fromLLM = async (text, senderName) => {
-  const url = process.env.LLM_ANALYZER_URL;
-  if (!url) return null;
-  const timeout = Number(process.env.LLM_ANALYZER_TIMEOUT_MS || 3000);
-  const payload = {
-    text,
-    task: "support_ticket_triage",
-    senderName: senderName || null,
-    output_schema: {
-      subject: "string(8-120)",
-      summary: "string",
-      priority: "High|Medium|Low",
-      confidence: "number_0_to_1",
-    },
-  };
-  const res = await axios.post(url, payload, { timeout });
-  const validated = validateLLMOutput(res?.data || {});
-  if (!validated.ok) {
-    console.warn("LLM output rejected:", validated.reason);
-    return null;
+const injectTicketId = (text, ticketId) => {
+  if (!text) return text;
+  if (ticketId) {
+    let result = text.replace(/TICKET_ID/g, ticketId);
+    // Also replace any hallucinated ticket numbers in narratives
+    result = result.replace(/\b(ANG|ISS)-\d{4,}/gi, ticketId);
+    return result.trim();
   }
-  return validated.value;
+  // No ticket ID: strip the placeholder reference cleanly
+  return text.replace(/\s*Ticket:\s*TICKET_ID\.?/gi, "").trim();
 };
 
-const buildDynamicAck = ({ senderName, priority, summary, ticketId }) => {
+const buildDynamicAck = ({ senderName, priority, ticketId }) => {
   const name = senderName || "there";
   const ref = ticketId ? ` Ticket: ${ticketId}.` : "";
   const pr = cleanPriority(priority);
@@ -94,71 +72,41 @@ const buildDynamicAck = ({ senderName, priority, summary, ticketId }) => {
   return `Hello ${name}, thank you for contacting us. We are sorry for the inconvenience. Your request has been received and assigned to our support engineers. We will get back to you shortly.${ref}`;
 };
 
-const analyzeInboundMessage = async ({ text, senderName }) => {
-  try {
-    const llm = await fromLLM(text, senderName);
-    if (llm) {
-      console.log("Triage source=llm confidence=", llm.confidence);
-      return { summary: llm.summary, subject: llm.subject, priority: llm.priority };
+// Single combined LLM call: returns triage + reply + narrative in one request.
+// Falls back to heuristics (reply/narrative will be null) if LLM unavailable or fails.
+const analyzeAll = async ({ text, senderName }) => {
+  const url = process.env.LLM_ANALYZER_URL;
+  if (url) {
+    const timeout = Number(process.env.LLM_ANALYZER_TIMEOUT_MS || 7000);
+    try {
+      const res = await axios.post(
+        url,
+        { text, task: "full_analysis", senderName: senderName || null },
+        { timeout }
+      );
+      const data = res?.data || {};
+      const subject = String(data.subject || "").trim();
+      const summary = String(data.summary || "").trim();
+      const priority = cleanPriority(data.priority);
+      const confidence = parseConfidence(data.confidence);
+      const reply = String(data.reply || "").trim();
+      const narrative = stripEmojis(data.narrative);
+
+      if (subject && subject.length >= 8 && confidence >= Number(process.env.LLM_MIN_CONFIDENCE || 0.65)) {
+        console.log("Analysis source=llm confidence=", confidence);
+        return { subject, summary: summary || subject, priority, confidence, reply, narrative };
+      }
+      console.warn("LLM full_analysis rejected:", !subject ? "no_subject" : "low_confidence");
+    } catch (error) {
+      console.warn("LLM full_analysis failed:", error.message);
     }
-  } catch (error) {
-    console.error("LLM triage failed, using fallback:", error.message);
   }
 
   const summary = buildSummary(text);
   const subject = fallbackSubject(text);
   const priority = pickPriority(text);
-  console.log("Triage source=fallback");
-  return { summary, subject, priority };
+  console.log("Analysis source=fallback");
+  return { summary, subject, priority, reply: null, narrative: null };
 };
 
-const generateLLMAutoReply = async ({ text, senderName, ticketId }) => {
-  const url = process.env.LLM_ANALYZER_URL;
-  if (!url) return null;
-  const timeout = Number(process.env.LLM_ANALYZER_TIMEOUT_MS || 3000);
-  const payload = {
-    text,
-    task: "auto_reply",
-    senderName,
-    ticketId: ticketId || null,
-    output_schema: {
-      reply: "string",
-    },
-  };
-  try {
-    const res = await axios.post(url, payload, { timeout });
-    const reply = String(res?.data?.reply || "").trim();
-    return reply || null;
-  } catch (error) {
-    console.warn("LLM auto-reply failed:", error.message);
-    return null;
-  }
-};
-
-const generateEscalationNarrative = async ({ text, senderName, ticketId, priority }) => {
-  const url = process.env.LLM_ANALYZER_URL;
-  if (!url) return null;
-  const timeout = Number(process.env.LLM_ANALYZER_TIMEOUT_MS || 3000);
-  const payload = {
-    text,
-    task: "escalation_narrative",
-    senderName: senderName || null,
-    ticketId: ticketId || null,
-    priority: priority || "Medium",
-  };
-  try {
-    const res = await axios.post(url, payload, { timeout });
-    let narrative = String(res?.data?.narrative || "").trim();
-    if (narrative && ticketId) {
-      narrative = narrative.replace(/ANG-\d{6,}/gi, ticketId);
-    }
-    // Strip emojis regardless of what the LLM outputs
-    narrative = narrative.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2B00}-\u{2BFF}]/gu, "").trim();
-    return narrative || null;
-  } catch (error) {
-    console.warn("LLM escalation narrative failed:", error.message);
-    return null;
-  }
-};
-
-module.exports = { analyzeInboundMessage, buildDynamicAck, generateLLMAutoReply, generateEscalationNarrative };
+module.exports = { analyzeAll, buildDynamicAck, injectTicketId };

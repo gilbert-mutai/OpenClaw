@@ -47,6 +47,18 @@ const ESCALATION_SYSTEM = `You are an IT support dispatcher writing a Mattermost
 Respond ONLY with valid JSON:
 {"narrative":"string"}`;
 
+const FULL_ANALYSIS_SYSTEM = `You are an IT support specialist. Given a WhatsApp message from a client, return a single JSON object covering ALL of the following:
+
+- subject: A concise ticket title (8-120 characters). Use the client's name if provided (e.g. "Server access issue reported by Gilbert").
+- summary: A one-sentence description of the issue.
+- priority: High (outages, cannot access systems, all users affected), Medium (degraded service, single user), or Low (questions, general requests).
+- confidence: Your confidence in the classification as a decimal 0.0-1.0.
+- reply: A brief WhatsApp acknowledgement (1-3 sentences). Address the client by name if provided, briefly reference the specific issue, confirm the ticket was raised, and end with "Ticket: TICKET_ID." if a ticket ID is provided (use the literal text TICKET_ID as a placeholder if none is provided yet).
+- narrative: A lively Mattermost alert for the on-call engineering team (2-4 sentences). Open with the client's name and issue, mention priority naturally, bold the ticket ID and priority using Mattermost markdown. If a Ticket ID is provided, reference ONLY that ID. Do NOT use any emojis.
+
+Respond ONLY with valid JSON matching this exact schema:
+{"subject":"string","summary":"string","priority":"High|Medium|Low","confidence":0.0,"reply":"string","narrative":"string"}`;
+
 const COMPARE_SYSTEM = `You are an expert at determining whether a new support message is about the same technical issue as a previous ticket or is a new, distinct problem.
 
 Return ONLY valid JSON:
@@ -104,6 +116,20 @@ app.post("/analyze", async (req, res) => {
       const data = await callModel({
         systemText: ESCALATION_SYSTEM,
         userContent: parts.join("\n"),
+      });
+      return res.json(data);
+    }
+
+    if (task === "full_analysis") {
+      const parts = [];
+      if (senderName) parts.push(`Client name: ${senderName}`);
+      if (req.body.ticketId) parts.push(`Ticket ID: ${req.body.ticketId}`);
+      if (req.body.priority) parts.push(`Priority hint: ${req.body.priority}`);
+      parts.push(`Client message:\n${text}`);
+      const data = await callModel({
+        systemText: FULL_ANALYSIS_SYSTEM,
+        userContent: parts.join("\n"),
+        maxTokens: 512,
       });
       return res.json(data);
     }

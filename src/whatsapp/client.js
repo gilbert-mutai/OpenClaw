@@ -6,7 +6,7 @@ const {
 } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 const qrcode = require("qrcode-terminal");
-const { analyzeInboundMessage, generateLLMAutoReply, generateEscalationNarrative } = require("../triage/analyzer");
+const { analyzeAll, buildDynamicAck, injectTicketId } = require("../triage/analyzer");
 
 const getMessageText = (message) => {
   if (!message) return "";
@@ -121,7 +121,9 @@ const startWhatsAppClient = async ({
         continue;
       }
 
-      const triage = await analyzeInboundMessage({ text, senderName });
+      // Single LLM call: returns triage + reply + narrative (or heuristic fallback)
+      const analysis = await analyzeAll({ text, senderName });
+      const triage = { summary: analysis.summary, subject: analysis.subject, priority: analysis.priority };
 
       let ticketResult = null;
       if (ticketService) {
@@ -133,7 +135,7 @@ const startWhatsAppClient = async ({
             text,
             receivedAt,
             llmSummary: triage.summary,
-            llmSubject: triage.subject || triage.ticketSubject || triage.title || null,
+            llmSubject: triage.subject || null,
             llmPriority: triage.priority,
           });
         } catch (error) {
@@ -142,24 +144,23 @@ const startWhatsAppClient = async ({
       }
 
       const shouldAck = ticketService ? ticketResult?.shouldAck === true : true;
+      const ticketId = ticketResult?.ticketId || null;
 
       if (autoReplyEnabled && shouldAck) {
-        const ticketId = ticketResult?.ticketId || null;
-        let ackText = await generateLLMAutoReply({ text, senderName, ticketId });
+        let ackText = analysis.reply
+          ? injectTicketId(analysis.reply, ticketId)
+          : null;
         if (!ackText) {
-          ackText = buildAckMessage({ senderName, triage, ticketResult, text });
+          ackText = buildDynamicAck({ senderName, priority: triage.priority, ticketId }) ||
+            buildAckMessage({ senderName, triage, ticketResult, text });
         }
         await socket.sendMessage(remoteJid, { text: ackText });
       }
 
       if (escalationEnabled && notifier && ticketResult?.duplicate !== true) {
-        const ticketId = ticketResult?.ticketId || null;
-        let escalationText = await generateEscalationNarrative({
-          text,
-          senderName,
-          ticketId,
-          priority: triage?.priority,
-        });
+        let escalationText = analysis.narrative
+          ? injectTicketId(analysis.narrative, ticketId)
+          : null;
         if (!escalationText) {
           escalationText = buildEscalationMessage({ senderName, text, remoteJid, ticketResult, triage });
         }

@@ -19,5 +19,5 @@ jobs:
           script: |
             cd /opt/openclaw/app
             git pull
-            pm2 restart llm-analyzer openclaw-wa openclaw-wa-marque --update-env
-            pm2 save
+            sudo pm2 restart llm-analyzer openclaw-wa openclaw-wa-marque --update-env
+            sudo pm2 save

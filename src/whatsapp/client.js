@@ -98,7 +98,10 @@ const startWhatsAppClient = async ({
       const senderName = message.pushName || message.verifiedBizName || ackFallbackName;
       const remoteJid = message.key.remoteJid;
       const senderJid = selectBestSenderJid(message);
-      const phone = extractPhone(senderJid) || extractPhone(remoteJid);
+      const isGroup = remoteJid.endsWith("@g.us");
+      const phone = isGroup
+        ? remoteJid.replace("@g.us", "")
+        : extractPhone(senderJid) || extractPhone(remoteJid);
       const messageId = message.key.id || `${remoteJid}-${Date.now()}`;
       const receivedAt = message.messageTimestamp
         ? new Date(Number(message.messageTimestamp) * 1000).toISOString()
@@ -143,7 +146,6 @@ const startWhatsAppClient = async ({
         }
       }
 
-      const isGroup = remoteJid.endsWith("@g.us");
       const shouldAck = !isGroup && (ticketService ? ticketResult?.shouldAck === true : true);
       const ticketId = ticketResult?.ticketId || null;
 

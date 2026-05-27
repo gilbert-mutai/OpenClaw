@@ -143,7 +143,8 @@ const startWhatsAppClient = async ({
         }
       }
 
-      const shouldAck = ticketService ? ticketResult?.shouldAck === true : true;
+      const isGroup = remoteJid.endsWith("@g.us");
+      const shouldAck = !isGroup && (ticketService ? ticketResult?.shouldAck === true : true);
       const ticketId = ticketResult?.ticketId || null;
 
       if (autoReplyEnabled && shouldAck) {

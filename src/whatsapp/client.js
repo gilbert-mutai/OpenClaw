@@ -148,6 +148,17 @@ const startWhatsAppClient = async ({
 
       const ticketId = ticketResult?.ticketId || null;
 
+      if (autoReplyEnabled && !isGroup && ticketResult?.shouldAck === true) {
+        let ackText = analysis.reply
+          ? injectTicketId(analysis.reply, ticketId)
+          : null;
+        if (!ackText) {
+          ackText = buildDynamicAck({ senderName, priority: triage.priority, ticketId }) ||
+            buildAckMessage({ senderName, triage, ticketResult, text });
+        }
+        await socket.sendMessage(remoteJid, { text: ackText });
+      }
+
       if (escalationEnabled && notifier && ticketResult?.duplicate !== true) {
         let escalationText = analysis.narrative
           ? injectTicketId(analysis.narrative, ticketId)

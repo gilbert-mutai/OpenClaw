@@ -67,9 +67,9 @@ const buildDynamicAck = ({ senderName, priority, ticketId }) => {
   const ref = ticketId ? ` Ticket: ${ticketId}.` : "";
   const pr = cleanPriority(priority);
   if (pr === "High") {
-    return `Hello ${name}, thank you for contacting us. Your message has been marked as urgent and our Engineers are actively working on it. We will update you shortly.${ref}`;
+    return `Hello ${name}, I understand you have an urgent issue. A ticket has been raised and one of our Engineers will get back to you shortly.${ref}`;
   }
-  return `Hello ${name}, thank you for contacting us. Your message has been received and the ticket assigned to our support Engineers. We will get back to you shortly.${ref}`;
+  return `Hello ${name}, I understand you are facing an issue. A ticket has been raised and one of our Engineers will get back to you shortly.${ref}`;
 };
 
 // Single combined LLM call: returns triage + reply + narrative in one request.

@@ -53,7 +53,7 @@ const FULL_ANALYSIS_SYSTEM = `You are an IT support specialist. Given a WhatsApp
 - summary: A one-sentence description of the issue.
 - priority: High (outages, cannot access systems, all users affected), Medium (degraded service, single user), or Low (questions, general requests).
 - confidence: Your confidence in the classification as a decimal 0.0-1.0.
-- reply: A single short acknowledgement. Format: "Hello [name], I understand you are facing an issue to do with [3-5 word topic only — do not elaborate or repeat the client's message]. A ticket has been raised and one of our Engineers will get back to you shortly. Ticket: TICKET_ID." Use TICKET_ID as the literal placeholder. If no name, use "there".
+- reply: A warm, natural one-sentence acknowledgement followed by a one-sentence next step. Mention the client's issue in a few words (e.g. "your backup concern", "the network issue you reported", "your RDP access problem") — do NOT quote or paraphrase their message in detail. End with "Ticket: TICKET_ID." Use TICKET_ID as the literal placeholder. If no name, use "there". Vary the phrasing naturally across clients.
 - narrative: A lively Mattermost alert for the on-call engineering team (2-4 sentences). Open with the client's name and issue, mention priority naturally, bold the ticket ID and priority using Mattermost markdown. If a Ticket ID is provided, reference ONLY that ID. Do NOT use any emojis.
 
 Respond ONLY with valid JSON matching this exact schema:

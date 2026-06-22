@@ -79,6 +79,14 @@ const startWhatsAppClient = async ({
           buildEscalationMessage,
           buildAckMessage,
         });
+      } else {
+        const instanceName = process.env.WHATSAPP_INSTANCE_NAME || "OpenClaw";
+        if (notifier) {
+          notifier.send(
+            `Warning: The WhatsApp session on the ${instanceName} server has ended. Please rescan the QR code to continue receiving WhatsApp tickets.`
+          ).catch(() => {});
+        }
+        console.warn(`WhatsApp session logged out on ${instanceName}`);
       }
     }
   });

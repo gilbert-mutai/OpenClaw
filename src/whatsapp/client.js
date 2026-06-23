@@ -65,16 +65,6 @@ const startWhatsAppClient = async ({
 
     if (qr) qrcode.generate(qr, { small: true });
 
-    if (connection === "open") {
-      const instanceName = process.env.WHATSAPP_INSTANCE_NAME || "OpenClaw";
-      if (notifier) {
-        notifier.send(
-          `The WhatsApp session on the ${instanceName} server is now connected and ready to receive messages.`
-        ).catch(() => {});
-      }
-      console.log(`WhatsApp session connected on ${instanceName}`);
-    }
-
     if (connection === "close") {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;

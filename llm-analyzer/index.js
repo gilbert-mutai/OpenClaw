@@ -1,13 +1,17 @@
-require("dotenv").config({ path: "../.env" });
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "..", ".env"), override: true });
 const express = require("express");
 const OpenAI = require("openai");
 
 const app = express();
 app.use(express.json());
 
+// LLM_BASE_URL points at any OpenAI-compatible endpoint (self-hosted Ollama/vLLM,
+// Azure OpenAI, OpenAI itself, etc). LLM_API_KEY is sent as the bearer token;
+// self-hosted servers that don't check it can leave it unset or use a dummy value.
 const client = new OpenAI({
-  baseURL: "https://models.inference.ai.azure.com",
-  apiKey: process.env.GITHUB_TOKEN,
+  baseURL: process.env.LLM_BASE_URL || "https://api.openai.com/v1",
+  apiKey: process.env.LLM_API_KEY || "not-needed",
 });
 const MODEL = process.env.LLM_MODEL || "gpt-4o-mini";
 const PORT = process.env.LLM_PORT || 4001;

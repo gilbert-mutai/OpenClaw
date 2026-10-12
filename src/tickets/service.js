@@ -29,6 +29,40 @@ const FOLLOWUP_PATTERNS = [
 
 const isFollowupIntent = (text = "") => FOLLOWUP_PATTERNS.some((p) => p.test(text));
 
+const CLOSING_PATTERNS = [
+  /\b(resolved|fixed|sorted)\b/i,
+  /\b(working (now|fine|well)|it'?s working|is working now)\b/i,
+  /\ball (good|set|sorted)\b/i,
+  /\b(in order now|back to normal|back up and running)\b/i,
+  /\b(issue|problem) (is )?(resolved|fixed|solved)\b/i,
+];
+
+const stripEmojiAndSymbols = (text) =>
+  String(text || "")
+    .replace(/\p{Extended_Pictographic}/gu, "")
+    .replace(/[‍️\u{1F3FB}-\u{1F3FF}]/gu, "")
+    .trim();
+
+const isEmojiOnly = (text = "") =>
+  text.trim().length > 0 && stripEmojiAndSymbols(text).length === 0;
+
+const isClosingIntent = (text = "") =>
+  isEmojiOnly(text) || CLOSING_PATTERNS.some((p) => p.test(text));
+
+// Serializes handleInbound calls per phone number so two messages sent moments
+// apart (e.g. a confirmation text immediately followed by a thumbs-up) can't
+// both read the same pre-update session state and each decide to open a new
+// ticket. Without this, the ~seconds-long LLM analysis call leaves a window
+// where concurrent calls for the same sender race.
+const phoneLocks = new Map();
+
+const runExclusive = (phone, fn) => {
+  const prior = phoneLocks.get(phone) || Promise.resolve();
+  const run = prior.then(fn, fn);
+  phoneLocks.set(phone, run.catch(() => {}));
+  return run;
+};
+
 const sameOrNewHeuristic = ({ previousSummary, newMessage, recentMessages = [] }) => {
   const context = [previousSummary, ...recentMessages.map((x) => x.text || "")].join(" ");
   const a = tokenize(context);
@@ -83,7 +117,9 @@ const createTicketService = ({ store, erpnext, timeoutHours = 24 }) => {
     return hoursBetween(lastActivityAt, nowIso) > timeoutHours;
   };
 
-  const handleInbound = async ({
+  const handleInbound = (params) => runExclusive(params.phone, () => handleInboundLocked(params));
+
+  const handleInboundLocked = async ({
     messageId,
     phone,
     senderName,
@@ -135,6 +171,7 @@ const createTicketService = ({ store, erpnext, timeoutHours = 24 }) => {
       shouldAck = true;
     } else {
       const followup = isFollowupIntent(text);
+      const closing = !followup && isClosingIntent(text);
 
       if (followup) {
         ticketId = session.open_ticket_id;
@@ -146,6 +183,16 @@ const createTicketService = ({ store, erpnext, timeoutHours = 24 }) => {
           content: `WhatsApp follow-up from ${senderName || phone}: ${text}`,
         });
         action = "appended_followup";
+      } else if (closing) {
+        // Client appears to be confirming the issue is resolved. Leave the
+        // ticket's status alone (engineers close it themselves) and just
+        // record the confirmation as a quiet comment, no new ticket, no ack.
+        ticketId = session.open_ticket_id;
+        await erpnext.appendComment({
+          ticketId,
+          content: `WhatsApp closing confirmation from ${senderName || phone}: ${text}`,
+        });
+        action = "appended_closing";
       } else {
         const { decision } = sameOrNewHeuristic({
           previousSummary: session.last_issue_summary || "",

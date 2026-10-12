@@ -13,26 +13,82 @@ const pickPriority = (rawText) => {
   return "Medium";
 };
 
+// Greeting/pleasantry/self-introduction filler that clients often lead with
+// before actually describing their issue (e.g. "Hi, I hope you're doing well,
+// this is Jane from Acme Corp, we've been having trouble with..."). Stripped
+// out so the generated subject reflects the real problem, not the preamble.
+const GREETING_PATTERNS = [
+  /^(hello|hi|hey|good\s(morning|afternoon|evening|day))\b[\s,!.]*/i,
+  /\bi\s?hope\s(you'?re|you\sare|this\s(message|email)\sfinds\syou)\s(doing\s)?well\b[.,!]*/i,
+  /\b(dear|good\sday)\s(team|support|sir|madam)\b[.,!]*/i,
+  /\bmy\sname\sis\s[a-z ]+\b[.,!]*/i,
+  /\bi('?m|\sam)\s[a-z ]+\s(from|at|with)\s[a-z0-9 ]+\b[.,!]*/i,
+  /^(quick\s(one|question|note)[\s,]*(though)?[\s,.-]*)/i,
+  /^(just\s(wanted\sto\s(say|mention|ask)|a\s(quick|heads[\s-]?up))[\s,]*)/i,
+  /^(by\sthe\sway[\s,]*)/i,
+  /^(so\sbasically[\s,]*)/i,
+  /^(one\smore\sthing[\s,]*)/i,
+];
+
+// Words that signal a sentence is actually describing a technical problem,
+// as opposed to small talk/backstory.
+const ISSUE_KEYWORDS =
+  /(cannot|can'?t|unable|not\sworking|doesn'?t\swork|failing|fail(ed|ure)?|down|error|issue|problem|broken|stuck|trouble|outage|timeout|timed\sout|access|connect|login|log\sin|password|reset|crash(ed|ing)?|slow|lost|missing|delete[d]?|help|ftp|ssh|rdp|3cx|outbound|network|server|email|e-?mail)/i;
+
+const splitSentences = (text) =>
+  String(text || "")
+    .split(/\n+|(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const stripGreetings = (sentence) => {
+  let s = sentence;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const pattern of GREETING_PATTERNS) {
+      const next = s.replace(pattern, "").trim();
+      if (next !== s) {
+        s = next;
+        changed = true;
+      }
+    }
+  }
+  return s;
+};
+
+// Finds the sentence that actually names the issue, skipping greeting/backstory
+// sentences. Falls back to the last remaining sentence, since clients who ramble
+// tend to land on the real ask at the end rather than the start.
+const extractCoreIssue = (rawText) => {
+  const sentences = splitSentences(rawText).map(stripGreetings).filter(Boolean);
+  if (!sentences.length) return "";
+  return sentences.find((s) => ISSUE_KEYWORDS.test(s)) || sentences[sentences.length - 1];
+};
+
 const buildSummary = (rawText) => {
-  const lines = String(rawText || "").split(/\n+/).map((x) => x.trim()).filter(Boolean);
-  if (!lines.length) return "WhatsApp support request";
-  const preferred = lines.find((line) =>
-    /(cannot|can't|unable|failing|down|error|issue|problem|ssh|rdp|3cx|outbound|network|server)/i.test(line)
-  );
-  const base = preferred || lines[0];
-  return base.length > 140 ? `${base.slice(0, 137)}...` : base;
+  const core = extractCoreIssue(rawText);
+  if (!core) return "WhatsApp support request";
+  return core.length > 140 ? `${core.slice(0, 137)}...` : core;
 };
 
 const fallbackSubject = (rawText) => {
-  const t = String(rawText || "").replace(/^hello[\s,]*/i, "").replace(/^hi[\s,]*/i, "").trim();
-  if (/(rdp|remote desktop)/i.test(t) && /(access|connect|timeout|timed out|issue)/i.test(t))
+  const core = extractCoreIssue(rawText);
+  if (!core) return "WhatsApp Support Request";
+
+  if (/(rdp|remote desktop)/i.test(core) && /(access|connect|timeout|timed out|issue)/i.test(core))
     return "Issue accessing server via RDP";
-  if (/\bssh\b/i.test(t) && /(access|connect|timeout|timed out|issue)/i.test(t))
+  if (/\bssh\b/i.test(core) && /(access|connect|timeout|timed out|issue)/i.test(core))
     return "Issue accessing server via SSH";
-  if (/\b3cx\b/i.test(t) && /(outbound|incoming|call|calls|issue|down)/i.test(t))
+  if (/\b3cx\b/i.test(core) && /(outbound|incoming|call|calls|issue|down)/i.test(core))
     return "Issue with 3CX calling service";
-  const compact = t.split(/[.!?]/)[0].trim();
-  return compact ? compact.split(/\s+/).slice(0, 10).join(" ") : "WhatsApp Support Request";
+
+  const compact = core.replace(/[.!?]+$/, "").trim();
+  if (!compact) return "WhatsApp Support Request";
+  if (compact.length <= 120) return compact;
+  const truncated = compact.slice(0, 117);
+  const cut = truncated.lastIndexOf(" ");
+  return `${cut > 0 ? truncated.slice(0, cut) : truncated}...`;
 };
 
 const cleanPriority = (p) => {
